@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DORA EU Demo UI</title>
+    <style>
+      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 2rem; }
+      header { margin-bottom: 1rem; }
+      .card { border: 1px solid #ddd; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; }
+      label { display: block; margin-top: .5rem; }
+      input { padding: .4rem .6rem; }
+      button { padding: .5rem .8rem; margin-top: .75rem; cursor: pointer; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>DORA EU – Minimal Web UI</h1>
+      <p>This page talks to the Axum REST API. Use the form below to create Organizations and see the list update.</p>
+      <div id="error" style="color:#b00020;"></div>
+    </header>
+
+    <section class="card">
+      <h2>Create Organization</h2>
+      <label>Organization name <input id="org-name" placeholder="Example Financial" /></label>
+      <label>Legal entity ID (optional) <input id="org-lei" placeholder="LEI123" /></label>
+      <button id="create-org">Create</button>
+    </section>
+
+    <section class="card">
+      <h2>Organizations</h2>
+      <ul id="org-list"></ul>
+    </section>
+
+    <script type="module">
+      import init from './dora_web.js';
+      init();
+    </script>
+  </body>
+  </html>

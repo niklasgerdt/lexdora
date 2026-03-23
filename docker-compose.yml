@@ -1,0 +1,37 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: dora-postgres
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_DB: dora
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./schema/dora_schema.sql:/docker-entrypoint-initdb.d/01_dora_schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: dora-app
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/dora
+      RUST_LOG: info
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+    driver: local

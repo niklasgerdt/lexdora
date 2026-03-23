@@ -1,0 +1,1090 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DORA EU Demo UI</title>
+    <style>
+      :root {
+        --bg: #fff;
+        --fg: #111;
+        --muted: #666;
+        --border: #e3e3e3;
+        --primary: #2f6feb;
+        --danger: #c62828;
+        --success: #2e7d32;
+      }
+      * { box-sizing: border-box; }
+      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; color: var(--fg); background: var(--bg); }
+      header { padding: 1rem 1.25rem; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--bg); z-index: 2; }
+      header h1 { margin: 0 0 .25rem 0; font-size: 1.25rem; }
+      header .sub { color: var(--muted); font-size: .95rem; }
+      .container { padding: 1rem 1.25rem; }
+      .tabs { display: flex; gap: .5rem; border-bottom: 1px solid var(--border); margin-bottom: 1rem; }
+      .tab { padding: .5rem .75rem; cursor: pointer; border: 1px solid var(--border); border-bottom: none; border-radius: 6px 6px 0 0; background: #f9f9fb; }
+      .tab.active { background: #fff; font-weight: 600; }
+      .panel { display: none; }
+      .panel.active { display: block; }
+      .card { border: 1px solid var(--border); border-radius: 8px; padding: 1rem; margin-bottom: 1rem; background: #fff; }
+      label { display: block; margin-top: .5rem; font-size: .9rem; }
+      input, select, textarea { padding: .45rem .6rem; border: 1px solid var(--border); border-radius: 6px; width: 100%; }
+      input[type="checkbox"] { width: auto; }
+      .row { display: grid; grid-template-columns: repeat(12, 1fr); gap: .75rem; align-items: end; }
+      .col-3 { grid-column: span 3; }
+      .col-4 { grid-column: span 4; }
+      .col-6 { grid-column: span 6; }
+      .col-8 { grid-column: span 8; }
+      .col-12 { grid-column: span 12; }
+      .actions { display: flex; gap: .5rem; }
+      button { padding: .5rem .8rem; cursor: pointer; border: 1px solid var(--border); border-radius: 6px; background: #f2f4f7; }
+      button.primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+      button.danger { background: var(--danger); color: #fff; border-color: var(--danger); }
+      button.ghost { background: transparent; }
+      table { width: 100%; border-collapse: collapse; }
+      th, td { border-bottom: 1px solid var(--border); padding: .5rem .25rem; text-align: left; font-size: .95rem; vertical-align: top; }
+      th { color: var(--muted); font-weight: 600; }
+      .note { color: var(--muted); font-size: .9rem; }
+      .banner { padding: .6rem .8rem; border-radius: 6px; margin: .5rem 0 1rem; display: none; }
+      .banner.err { background: #fdecea; color: #611a15; border: 1px solid #f3b5ad; }
+      .banner.ok { background: #e6f4ea; color: #1e4620; border: 1px solid #b7dfb9; }
+      .small { font-size: .85rem; color: var(--muted); }
+      @media (max-width: 900px){ .col-3, .col-4, .col-6, .col-8 { grid-column: span 12; } }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>DORA EU – Demo UI</h1>
+      <div class="sub">Operate Organizations, Users, Incidents, Third Parties, and Assets over the REST API.</div>
+      <div id="global-msg" class="banner err"></div>
+    </header>
+    <div class="container">
+      <nav class="tabs">
+        <div class="tab active" data-tab="orgs">Organizations</div>
+        <div class="tab" data-tab="users">Users</div>
+        <div class="tab" data-tab="incidents">Incidents</div>
+        <div class="tab" data-tab="tpps">Third Parties</div>
+        <div class="tab" data-tab="assets">Assets</div>
+        <div class="tab" data-tab="bus">Business Units</div>
+        <div class="tab" data-tab="roles">Roles</div>
+        <div class="tab" data-tab="perms">Permissions</div>
+      </nav>
+
+      <!-- Organizations -->
+      <section id="panel-orgs" class="panel active">
+        <div class="card">
+          <h2>Create Organization</h2>
+          <div class="row">
+            <div class="col-6">
+              <label>Name
+                <input id="org-name" placeholder="Example Financial" />
+              </label>
+            </div>
+            <div class="col-6">
+              <label>Legal entity ID (optional)
+                <input id="org-lei" placeholder="LEI123" />
+              </label>
+            </div>
+            <div class="col-12 actions">
+              <button id="create-org" class="primary">Create</button>
+              <span class="note">Creates a new row in dora.organizations</span>
+            </div>
+          </div>
+          <div id="org-msg" class="banner err"></div>
+        </div>
+        <div class="card">
+          <h2>Organizations</h2>
+          <table>
+            <thead>
+              <tr><th>Name</th><th>Legal Entity ID</th><th>ID</th><th></th></tr>
+            </thead>
+            <tbody id="org-tbody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Business Units -->
+      <section id="panel-bus" class="panel">
+        <div class="card">
+          <h2>Create Business Unit</h2>
+          <div class="row">
+            <div class="col-4">
+              <label>Organization
+                <select id="bu-org"></select>
+              </label>
+            </div>
+            <div class="col-4">
+              <label>Name
+                <input id="bu-name" placeholder="Retail Banking" />
+              </label>
+            </div>
+            <div class="col-4">
+              <label>Description (optional)
+                <input id="bu-desc" placeholder="Scope or notes" />
+              </label>
+            </div>
+            <div class="col-12 actions">
+              <button id="create-bu" class="primary">Create</button>
+            </div>
+          </div>
+          <div id="bu-msg" class="banner err"></div>
+        </div>
+        <div class="card">
+          <div class="row">
+            <div class="col-6"><h2>Business Units</h2></div>
+            <div class="col-6">
+              <label>Filter by Organization
+                <select id="bu-filter-org"></select>
+              </label>
+            </div>
+          </div>
+          <table>
+            <thead>
+              <tr><th>Name</th><th>Description</th><th>Org</th><th>ID</th><th></th></tr>
+            </thead>
+            <tbody id="bu-tbody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Users -->
+      <section id="panel-users" class="panel">
+        <div class="card">
+          <h2>Create User</h2>
+          <div class="row">
+            <div class="col-4">
+              <label>Organization
+                <select id="user-org"></select>
+              </label>
+            </div>
+            <div class="col-4">
+              <label>Email
+                <input id="user-email" placeholder="jane@example.com" />
+              </label>
+            </div>
+            <div class="col-4">
+              <label>Full name (optional)
+                <input id="user-fullname" placeholder="Jane Doe" />
+              </label>
+            </div>
+            <div class="col-12 actions">
+              <button id="create-user" class="primary">Create</button>
+              <span class="note">Users are unique by email.</span>
+            </div>
+          </div>
+          <div id="user-msg" class="banner err"></div>
+        </div>
+        <div class="card">
+          <div class="row">
+            <div class="col-6">
+              <h2>Users</h2>
+            </div>
+            <div class="col-6">
+              <label>Filter by Organization
+                <select id="user-filter-org"></select>
+              </label>
+            </div>
+          </div>
+          <table>
+            <thead>
+              <tr><th>Email</th><th>Full name</th><th>Active</th><th>Roles</th><th>Org</th><th>ID</th><th></th></tr>
+            </thead>
+            <tbody id="user-tbody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Incidents -->
+      <section id="panel-incidents" class="panel">
+        <div class="card">
+          <h2>Create Incident</h2>
+          <div class="row">
+            <div class="col-4">
+              <label>Organization
+                <select id="inc-org"></select>
+              </label>
+            </div>
+            <div class="col-4">
+              <label>Title
+                <input id="inc-title" placeholder="API outage" />
+              </label>
+            </div>
+            <div class="col-4">
+              <label>Detected at
+                <input id="inc-detected" placeholder="now or 2026-03-22T12:00:00Z" />
+              </label>
+            </div>
+            <div class="col-4">
+              <label>Type
+                <select id="inc-type">
+                  <option>service_disruption</option>
+                  <option>security_breach</option>
+                  <option>data_breach</option>
+                  <option>degradation</option>
+                  <option>malware</option>
+                  <option>ddos</option>
+                  <option>fraud</option>
+                  <option>other</option>
+                </select>
+              </label>
+            </div>
+            <div class="col-4">
+              <label>Severity
+                <select id="inc-sev">
+                  <option>minor</option>
+                  <option>moderate</option>
+                  <option>major</option>
+                  <option>severe</option>
+                </select>
+              </label>
+            </div>
+            <div class="col-4">
+              <label><span>Description</span>
+                <input id="inc-desc" placeholder="Short description" />
+              </label>
+            </div>
+            <div class="col-3">
+              <label><input type="checkbox" id="inc-major" /> Major</label>
+            </div>
+            <div class="col-12 actions">
+              <button id="create-inc" class="primary">Create</button>
+              <span class="note">Enum values validated by DB.</span>
+            </div>
+          </div>
+          <div id="inc-msg" class="banner err"></div>
+        </div>
+        <div class="card">
+          <div class="row">
+            <div class="col-6"><h2>Incidents</h2></div>
+            <div class="col-6">
+              <label>Filter by Organization
+                <select id="inc-filter-org"></select>
+              </label>
+            </div>
+          </div>
+          <table>
+            <thead>
+              <tr><th>Title</th><th>Type</th><th>Severity</th><th>Detected</th><th>Major</th><th>Org</th><th>ID</th><th></th></tr>
+            </thead>
+            <tbody id="inc-tbody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Third Parties -->
+      <section id="panel-tpps" class="panel">
+        <div class="card">
+          <h2>Create Third Party</h2>
+          <div class="row">
+            <div class="col-3">
+              <label>Organization
+                <select id="tpp-org"></select>
+              </label>
+            </div>
+            <div class="col-3">
+              <label>Name
+                <input id="tpp-name" placeholder="CloudCo" />
+              </label>
+            </div>
+            <div class="col-2">
+              <label>Country
+                <input id="tpp-country" placeholder="FI" />
+              </label>
+            </div>
+            <div class="col-2">
+              <label>Criticality
+                <select id="tpp-criticality">
+                  <option>non_critical</option>
+                  <option>important</option>
+                  <option>critical</option>
+                </select>
+              </label>
+            </div>
+            <div class="col-2">
+              <label><input type="checkbox" id="tpp-important" /> Important</label>
+            </div>
+            <div class="col-12 actions">
+              <button id="create-tpp" class="primary">Create</button>
+            </div>
+          </div>
+          <div id="tpp-msg" class="banner err"></div>
+        </div>
+        <div class="card">
+          <div class="row">
+            <div class="col-6"><h2>Third Parties</h2></div>
+            <div class="col-6">
+              <label>Filter by Organization
+                <select id="tpp-filter-org"></select>
+              </label>
+            </div>
+          </div>
+          <table>
+            <thead>
+              <tr><th>Name</th><th>Country</th><th>Criticality</th><th>Important</th><th>Org</th><th>ID</th><th></th></tr>
+            </thead>
+            <tbody id="tpp-tbody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Assets -->
+      <section id="panel-assets" class="panel">
+        <div class="card">
+          <h2>Create ICT Asset</h2>
+          <div class="row">
+            <div class="col-3">
+              <label>Organization
+                <select id="asset-org"></select>
+              </label>
+            </div>
+            <div class="col-3">
+              <label>Name
+                <input id="asset-name" placeholder="Payments API server" />
+              </label>
+            </div>
+            <div class="col-3">
+              <label>Type
+                <input id="asset-type" placeholder="server|db|app|cloud_service" />
+              </label>
+            </div>
+            <div class="col-3">
+              <label>Criticality
+                <select id="asset-criticality">
+                  <option>non_critical</option>
+                  <option>important</option>
+                  <option>critical</option>
+                </select>
+              </label>
+            </div>
+            <div class="col-8">
+              <label>Description
+                <input id="asset-desc" placeholder="Short description (optional)" />
+              </label>
+            </div>
+            <div class="col-2">
+              <label><input type="checkbox" id="asset-important" /> Important</label>
+            </div>
+            <div class="col-12 actions">
+              <button id="create-asset" class="primary">Create</button>
+            </div>
+          </div>
+          <div id="asset-msg" class="banner err"></div>
+        </div>
+        <div class="card">
+          <div class="row">
+            <div class="col-6"><h2>ICT Assets</h2></div>
+            <div class="col-6">
+              <label>Filter by Organization
+                <select id="asset-filter-org"></select>
+              </label>
+            </div>
+          </div>
+          <table>
+            <thead>
+              <tr><th>Name</th><th>Type</th><th>Criticality</th><th>Important</th><th>Description</th><th>Org</th><th>ID</th><th></th></tr>
+            </thead>
+            <tbody id="asset-tbody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Roles -->
+      <section id="panel-roles" class="panel">
+        <div class="card">
+          <h2>Create Role</h2>
+          <div class="row">
+            <div class="col-6">
+              <label>Name
+                <input id="role-name" placeholder="Incident Manager" />
+              </label>
+            </div>
+            <div class="col-6">
+              <label>Description (optional)
+                <input id="role-desc" placeholder="What this role does" />
+              </label>
+            </div>
+            <div class="col-12 actions">
+              <button id="create-role" class="primary">Create</button>
+            </div>
+          </div>
+          <div id="role-msg" class="banner err"></div>
+        </div>
+        <div class="card">
+          <h2>Roles</h2>
+          <table>
+            <thead>
+              <tr><th>Name</th><th>Description</th><th>Permissions</th><th>ID</th><th></th></tr>
+            </thead>
+            <tbody id="role-tbody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Permissions -->
+      <section id="panel-perms" class="panel">
+        <div class="card">
+          <h2>Create Permission</h2>
+          <div class="row">
+            <div class="col-6">
+              <label>Name
+                <input id="perm-name" placeholder="incident.view" />
+              </label>
+            </div>
+            <div class="col-6">
+              <label>Description (optional)
+                <input id="perm-desc" placeholder="What this permission allows" />
+              </label>
+            </div>
+            <div class="col-12 actions">
+              <button id="create-perm" class="primary">Create</button>
+            </div>
+          </div>
+          <div id="perm-msg" class="banner err"></div>
+        </div>
+        <div class="card">
+          <h2>Permissions</h2>
+          <table>
+            <thead>
+              <tr><th>Name</th><th>Description</th><th>ID</th><th></th></tr>
+            </thead>
+            <tbody id="perm-tbody"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      // Shared fetch helpers
+      async function http(method, url, body) {
+        const opts = { method, headers: {} };
+        if (body !== undefined) {
+          opts.headers['Content-Type'] = 'application/json';
+          opts.body = JSON.stringify(body);
+        }
+        const res = await fetch(url, opts);
+        let json = null;
+        try { json = await res.json(); } catch (_) {}
+        if (!res.ok) {
+          const msg = json?.error || res.status + ' ' + res.statusText;
+          throw new Error(msg);
+        }
+        return json;
+      }
+      const GET = (u) => http('GET', u);
+      const POST = (u,b) => http('POST', u, b);
+      const PATCH = (u,b) => http('PATCH', u, b);
+      const DELETE_ = (u) => http('DELETE', u);
+
+      // Global messaging
+      function showMsg(id, text, ok=false) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.classList.remove('ok','err');
+        el.classList.add(ok ? 'ok':'err', 'banner');
+        el.textContent = text;
+        el.style.display = text ? 'block':'none';
+      }
+
+      // Data caches
+      let ORGS = [];
+      let PERMS = [];
+      let ROLES = [];
+
+      // Tabs
+      function setupTabs(){
+        const tabs = document.querySelectorAll('.tab');
+        tabs.forEach(t => t.addEventListener('click', () => {
+          tabs.forEach(x => x.classList.remove('active'));
+          t.classList.add('active');
+          const name = t.dataset.tab;
+          document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+          document.getElementById('panel-' + name).classList.add('active');
+        }));
+      }
+
+      // ---------- Organizations ----------
+      async function loadOrgs() {
+        ORGS = await GET('/orgs');
+        renderOrgOptions();
+        renderOrgsTable();
+      }
+
+      function renderOrgOptions(){
+        const selects = ['user-org','user-filter-org','inc-org','inc-filter-org','tpp-org','tpp-filter-org','asset-org','asset-filter-org','bu-org','bu-filter-org'];
+        for (const id of selects) {
+          const sel = document.getElementById(id);
+          if (!sel) continue;
+          const cur = sel.value;
+          sel.innerHTML = '';
+          const optAll = (id.endsWith('filter-org'));
+          if (optAll) {
+            const o = document.createElement('option');
+            o.value = ''; o.textContent = 'All organizations';
+            sel.appendChild(o);
+          }
+          for (const o of ORGS) {
+            const opt = document.createElement('option');
+            opt.value = o.id; opt.textContent = o.name;
+            sel.appendChild(opt);
+          }
+          if ([...sel.options].some(x => x.value === cur)) sel.value = cur;
+        }
+      }
+
+      function td(text){ const td=document.createElement('td'); td.textContent = text; return td; }
+      function btn(label, cls){ const b=document.createElement('button'); b.textContent=label; if (cls) b.className=cls; return b; }
+
+      function renderOrgsTable(){
+        const tbody = document.getElementById('org-tbody');
+        tbody.innerHTML = '';
+        for (const o of ORGS) {
+          const tr = document.createElement('tr');
+          const nameTd = td(o.name);
+          const leiTd = td(o.legal_entity_id ?? '');
+          tr.appendChild(nameTd);
+          tr.appendChild(leiTd);
+          tr.appendChild(td(o.id));
+          const act = document.createElement('td');
+          const edit = btn('Edit');
+          const del = btn('Delete','danger');
+          act.appendChild(edit); act.appendChild(del);
+          tr.appendChild(act);
+
+          edit.addEventListener('click', () => orgRowEdit(tr, o));
+          del.addEventListener('click', async () => {
+            if (!confirm('Delete organization and cascade to related users?')) return;
+            try { await DELETE_('/orgs/' + o.id); await loadOrgs(); showMsg('org-msg','Deleted organization', true);} catch(e){ showMsg('org-msg', String(e)); }
+          });
+
+          tbody.appendChild(tr);
+        }
+      }
+
+      function orgRowEdit(tr, o){
+        tr.innerHTML = '';
+        const nameI = document.createElement('input'); nameI.value = o.name;
+        const leiI = document.createElement('input'); leiI.value = o.legal_entity_id ?? '';
+        let td1 = document.createElement('td'); td1.appendChild(nameI); tr.appendChild(td1);
+        let td2 = document.createElement('td'); td2.appendChild(leiI); tr.appendChild(td2);
+        tr.appendChild(td(o.id));
+        const act = document.createElement('td');
+        const save = btn('Save','primary');
+        const cancel = btn('Cancel','ghost');
+        act.appendChild(save); act.appendChild(cancel);
+        tr.appendChild(act);
+        save.addEventListener('click', async () => {
+          try { await PATCH('/orgs/' + o.id, { name: nameI.value.trim(), legal_entity_id: leiI.value.trim() || null }); await loadOrgs(); showMsg('org-msg','Saved', true);} catch(e){ showMsg('org-msg', String(e)); }
+        });
+        cancel.addEventListener('click', renderOrgsTable);
+      }
+
+      async function createOrg(){
+        const name = document.getElementById('org-name').value.trim();
+        const lei = document.getElementById('org-lei').value.trim();
+        if (!name) return;
+        try { await POST('/orgs', { name, legal_entity_id: lei || undefined }); document.getElementById('org-name').value=''; document.getElementById('org-lei').value=''; await loadOrgs(); showMsg('org-msg','Created organization', true);} catch(e){ showMsg('org-msg', String(e)); }
+      }
+
+      // ---------- Users ----------
+      async function loadUsers(){
+        const f = document.getElementById('user-filter-org').value;
+        const url = f ? ('/users?organization_id=' + encodeURIComponent(f)) : '/users';
+        const users = await GET(url);
+        const tbody = document.getElementById('user-tbody');
+        tbody.innerHTML = '';
+        for (const u of users) {
+          const tr = document.createElement('tr');
+          tr.appendChild(td(u.email));
+          tr.appendChild(td(u.full_name ?? ''));
+          tr.appendChild(td(u.is_active ? 'yes' : 'no'));
+          const rolesTd = document.createElement('td'); rolesTd.textContent = '…'; tr.appendChild(rolesTd);
+          // load roles asynchronously
+          GET('/users/' + u.id + '/roles').then(list => { rolesTd.textContent = list.map(r => r.name).join(', ') || ''; }).catch(_=>{ rolesTd.textContent=''; });
+          const orgName = ORGS.find(o => o.id === u.organization_id)?.name || u.organization_id;
+          tr.appendChild(td(orgName));
+          tr.appendChild(td(u.id));
+          const act = document.createElement('td');
+          const edit = btn('Edit'); const del = btn('Delete','danger');
+          const addR = btn('Add Role'); const remR = btn('Remove Role');
+          act.appendChild(edit); act.appendChild(del); act.appendChild(addR); act.appendChild(remR); tr.appendChild(act);
+          edit.addEventListener('click', () => userRowEdit(tr, u));
+          del.addEventListener('click', async () => {
+            if (!confirm('Delete user ' + u.email + '?')) return;
+            try { await DELETE_('/users/' + u.id); await loadUsers(); showMsg('user-msg','Deleted user', true);} catch(e){ showMsg('user-msg', String(e)); }
+          });
+          addR.addEventListener('click', async () => {
+            try {
+              if (!ROLES.length) ROLES = await GET('/roles');
+              const choice = prompt('Enter role name to add to user (available: ' + ROLES.map(r=>r.name).join(', ') + ')');
+              if (!choice) return;
+              const role = ROLES.find(r => r.name === choice.trim());
+              if (!role) { alert('Role not found'); return; }
+              await POST('/users/' + u.id + '/roles', { role_id: role.id });
+              const list = await GET('/users/' + u.id + '/roles'); rolesTd.textContent = list.map(r => r.name).join(', ');
+              showMsg('user-msg','Role added', true);
+            } catch(e){ showMsg('user-msg', String(e)); }
+          });
+          remR.addEventListener('click', async () => {
+            try {
+              const list = await GET('/users/' + u.id + '/roles');
+              if (!list.length) { alert('No roles to remove'); return; }
+              const choice = prompt('Enter role name to remove (assigned: ' + list.map(r=>r.name).join(', ') + ')');
+              if (!choice) return;
+              const role = list.find(r => r.name === choice.trim());
+              if (!role) { alert('Role not assigned'); return; }
+              await DELETE_('/users/' + u.id + '/roles/' + role.id);
+              const list2 = await GET('/users/' + u.id + '/roles'); rolesTd.textContent = list2.map(r => r.name).join(', ');
+              showMsg('user-msg','Role removed', true);
+            } catch(e){ showMsg('user-msg', String(e)); }
+          });
+          tbody.appendChild(tr);
+        }
+      }
+
+      function userRowEdit(tr, u){
+        tr.innerHTML = '';
+        const emailI = document.createElement('input'); emailI.value = u.email;
+        const nameI = document.createElement('input'); nameI.value = u.full_name ?? '';
+        const activeI = document.createElement('input'); activeI.type='checkbox'; activeI.checked = !!u.is_active;
+        let td1 = document.createElement('td'); td1.appendChild(emailI); tr.appendChild(td1);
+        let td2 = document.createElement('td'); td2.appendChild(nameI); tr.appendChild(td2);
+        let td3 = document.createElement('td'); td3.appendChild(activeI); tr.appendChild(td3);
+        const orgName = ORGS.find(o => o.id === u.organization_id)?.name || u.organization_id;
+        tr.appendChild(td(orgName));
+        tr.appendChild(td(u.id));
+        const act = document.createElement('td');
+        const save = btn('Save','primary'); const cancel = btn('Cancel','ghost');
+        act.appendChild(save); act.appendChild(cancel); tr.appendChild(act);
+        save.addEventListener('click', async () => {
+          try { await PATCH('/users/' + u.id, { email: emailI.value.trim() || null, full_name: nameI.value.trim() || null, is_active: activeI.checked }); await loadUsers(); showMsg('user-msg','Saved user', true);} catch(e){ showMsg('user-msg', String(e)); }
+        });
+        cancel.addEventListener('click', loadUsers);
+      }
+
+      async function createUser(){
+        const org = document.getElementById('user-org').value;
+        const email = document.getElementById('user-email').value.trim();
+        const full = document.getElementById('user-fullname').value.trim();
+        if (!org || !email) return;
+        try { await POST('/users', { organization_id: org, email, full_name: full || undefined }); document.getElementById('user-email').value=''; document.getElementById('user-fullname').value=''; await loadUsers(); showMsg('user-msg','Created user', true);} catch(e){ showMsg('user-msg', String(e)); }
+      }
+
+      // ---------- Incidents ----------
+      async function loadIncidents(){
+        const f = document.getElementById('inc-filter-org').value;
+        const url = f ? ('/incidents?organization_id=' + encodeURIComponent(f)) : '/incidents';
+        const list = await GET(url);
+        const tbody = document.getElementById('inc-tbody');
+        tbody.innerHTML = '';
+        for (const it of list) {
+          const tr = document.createElement('tr');
+          tr.appendChild(td(it.title));
+          tr.appendChild(td(it.type_));
+          tr.appendChild(td(it.severity));
+          tr.appendChild(td(new Date(it.detected_at).toISOString()));
+          tr.appendChild(td(it.is_major ? 'yes':'no'));
+          const orgName = ORGS.find(o => o.id === it.organization_id)?.name || it.organization_id;
+          tr.appendChild(td(orgName));
+          tr.appendChild(td(it.id));
+          const act = document.createElement('td');
+          const edit = btn('Edit'); const del = btn('Delete','danger');
+          act.appendChild(edit); act.appendChild(del); tr.appendChild(act);
+          edit.addEventListener('click', () => incidentRowEdit(tr, it));
+          del.addEventListener('click', async () => {
+            if (!confirm('Delete incident ' + it.title + '?')) return;
+            try { await DELETE_('/incidents/' + it.id); await loadIncidents(); showMsg('inc-msg','Deleted incident', true);} catch(e){ showMsg('inc-msg', String(e)); }
+          });
+          tbody.appendChild(tr);
+        }
+      }
+
+      function incidentRowEdit(tr, it){
+        tr.innerHTML = '';
+        const titleI = document.createElement('input'); titleI.value = it.title;
+        const typeI = document.createElement('select');
+        for (const t of ['service_disruption','security_breach','data_breach','degradation','malware','ddos','fraud','other']){ const o=document.createElement('option'); o.textContent=t; typeI.appendChild(o);} typeI.value = it.type_;
+        const sevI = document.createElement('select');
+        for (const s of ['minor','moderate','major','severe']){ const o=document.createElement('option'); o.textContent=s; sevI.appendChild(o);} sevI.value = it.severity;
+        const descI = document.createElement('input'); descI.value = it.description ?? '';
+        const majorI = document.createElement('input'); majorI.type='checkbox'; majorI.checked = !!it.is_major;
+        let td1 = document.createElement('td'); td1.appendChild(titleI); tr.appendChild(td1);
+        let td2 = document.createElement('td'); td2.appendChild(typeI); tr.appendChild(td2);
+        let td3 = document.createElement('td'); td3.appendChild(sevI); tr.appendChild(td3);
+        tr.appendChild(td(new Date(it.detected_at).toISOString()));
+        let td5 = document.createElement('td'); td5.appendChild(majorI); tr.appendChild(td5);
+        const orgName = ORGS.find(o => o.id === it.organization_id)?.name || it.organization_id;
+        tr.appendChild(td(orgName));
+        tr.appendChild(td(it.id));
+        const act = document.createElement('td');
+        const save = btn('Save','primary'); const cancel = btn('Cancel','ghost');
+        act.appendChild(save); act.appendChild(cancel); tr.appendChild(act);
+        save.addEventListener('click', async () => {
+          try { await PATCH('/incidents/' + it.id, { title: titleI.value.trim() || null, type_: typeI.value, severity: sevI.value, description: descI.value.trim() || null, is_major: majorI.checked }); await loadIncidents(); showMsg('inc-msg','Saved incident', true);} catch(e){ showMsg('inc-msg', String(e)); }
+        });
+        cancel.addEventListener('click', loadIncidents);
+      }
+
+      async function createIncident(){
+        const org = document.getElementById('inc-org').value;
+        const title = document.getElementById('inc-title').value.trim();
+        const detected_at = document.getElementById('inc-detected').value.trim() || 'now';
+        const type_ = document.getElementById('inc-type').value;
+        const severity = document.getElementById('inc-sev').value;
+        const description = document.getElementById('inc-desc').value.trim();
+        const is_major = document.getElementById('inc-major').checked;
+        if (!org || !title) return;
+        try { await POST('/incidents', { organization_id: org, title, type_, severity, detected_at, description: description || undefined, is_major });
+          document.getElementById('inc-title').value=''; document.getElementById('inc-detected').value=''; document.getElementById('inc-desc').value=''; document.getElementById('inc-major').checked=false;
+          await loadIncidents(); showMsg('inc-msg','Created incident', true);
+        } catch(e){ showMsg('inc-msg', String(e)); }
+      }
+
+      // ---------- Third Parties ----------
+      async function loadTpps(){
+        const f = document.getElementById('tpp-filter-org').value;
+        const url = f ? ('/tpps?organization_id=' + encodeURIComponent(f)) : '/tpps';
+        const list = await GET(url);
+        const tbody = document.getElementById('tpp-tbody');
+        tbody.innerHTML = '';
+        for (const tp of list) {
+          const tr = document.createElement('tr');
+          tr.appendChild(td(tp.name));
+          tr.appendChild(td(tp.country ?? ''));
+          tr.appendChild(td(tp.criticality));
+          tr.appendChild(td(tp.is_important ? 'yes' : 'no'));
+          const orgName = ORGS.find(o => o.id === tp.organization_id)?.name || tp.organization_id;
+          tr.appendChild(td(orgName));
+          tr.appendChild(td(tp.id));
+          const act = document.createElement('td');
+          const edit = btn('Edit'); const del = btn('Delete','danger');
+          act.appendChild(edit); act.appendChild(del); tr.appendChild(act);
+          edit.addEventListener('click', () => tppRowEdit(tr, tp));
+          del.addEventListener('click', async () => {
+            if (!confirm('Delete third party ' + tp.name + '?')) return;
+            try { await DELETE_('/tpps/' + tp.id); await loadTpps(); showMsg('tpp-msg','Deleted third party', true);} catch(e){ showMsg('tpp-msg', String(e)); }
+          });
+          tbody.appendChild(tr);
+        }
+      }
+
+      function tppRowEdit(tr, tp){
+        tr.innerHTML = '';
+        const nameI = document.createElement('input'); nameI.value = tp.name;
+        const countryI = document.createElement('input'); countryI.value = tp.country ?? '';
+        const critI = document.createElement('select');
+        for (const c of ['non_critical','important','critical']){ const o=document.createElement('option'); o.textContent=c; critI.appendChild(o);} critI.value = tp.criticality;
+        const impI = document.createElement('input'); impI.type='checkbox'; impI.checked = !!tp.is_important;
+        let td1 = document.createElement('td'); td1.appendChild(nameI); tr.appendChild(td1);
+        let td2 = document.createElement('td'); td2.appendChild(countryI); tr.appendChild(td2);
+        let td3 = document.createElement('td'); td3.appendChild(critI); tr.appendChild(td3);
+        let td4 = document.createElement('td'); td4.appendChild(impI); tr.appendChild(td4);
+        const orgName = ORGS.find(o => o.id === tp.organization_id)?.name || tp.organization_id;
+        tr.appendChild(td(orgName));
+        tr.appendChild(td(tp.id));
+        const act = document.createElement('td');
+        const save = btn('Save','primary'); const cancel = btn('Cancel','ghost');
+        act.appendChild(save); act.appendChild(cancel); tr.appendChild(act);
+        save.addEventListener('click', async () => {
+          try { await PATCH('/tpps/' + tp.id, { name: nameI.value.trim() || null, country: countryI.value.trim() || null, criticality: critI.value, is_important: impI.checked }); await loadTpps(); showMsg('tpp-msg','Saved third party', true);} catch(e){ showMsg('tpp-msg', String(e)); }
+        });
+        cancel.addEventListener('click', loadTpps);
+      }
+
+      async function createTpp(){
+        const org = document.getElementById('tpp-org').value;
+        const name = document.getElementById('tpp-name').value.trim();
+        const country = document.getElementById('tpp-country').value.trim();
+        const criticality = document.getElementById('tpp-criticality').value;
+        const is_important = document.getElementById('tpp-important').checked;
+        if (!org || !name) return;
+        try { await POST('/tpps', { organization_id: org, name, country: country || undefined, criticality, is_important });
+          document.getElementById('tpp-name').value=''; document.getElementById('tpp-country').value=''; document.getElementById('tpp-important').checked=false;
+          await loadTpps(); showMsg('tpp-msg','Created third party', true);
+        } catch(e){ showMsg('tpp-msg', String(e)); }
+      }
+
+      // ---------- Assets ----------
+      async function loadAssets(){
+        const f = document.getElementById('asset-filter-org').value;
+        const url = f ? ('/assets?organization_id=' + encodeURIComponent(f)) : '/assets';
+        const list = await GET(url);
+        const tbody = document.getElementById('asset-tbody');
+        tbody.innerHTML = '';
+        for (const a of list) {
+          const tr = document.createElement('tr');
+          tr.appendChild(td(a.name));
+          tr.appendChild(td(a.asset_type));
+          tr.appendChild(td(a.criticality));
+          tr.appendChild(td(a.is_important ? 'yes' : 'no'));
+          tr.appendChild(td(a.description ?? ''));
+          const orgName = ORGS.find(o => o.id === a.organization_id)?.name || a.organization_id;
+          tr.appendChild(td(orgName));
+          tr.appendChild(td(a.id));
+          const act = document.createElement('td');
+          const edit = btn('Edit'); const del = btn('Delete','danger');
+          act.appendChild(edit); act.appendChild(del); tr.appendChild(act);
+          edit.addEventListener('click', () => assetRowEdit(tr, a));
+          del.addEventListener('click', async () => {
+            if (!confirm('Delete asset ' + a.name + '?')) return;
+            try { await DELETE_('/assets/' + a.id); await loadAssets(); showMsg('asset-msg','Deleted asset', true);} catch(e){ showMsg('asset-msg', String(e)); }
+          });
+          tbody.appendChild(tr);
+        }
+      }
+
+      // ---------- Business Units ----------
+      async function loadBus(){
+        const f = document.getElementById('bu-filter-org').value;
+        const url = f ? ('/business-units?organization_id=' + encodeURIComponent(f)) : '/business-units';
+        const list = await GET(url);
+        const tbody = document.getElementById('bu-tbody');
+        tbody.innerHTML = '';
+        for (const b of list) {
+          const tr = document.createElement('tr');
+          tr.appendChild(td(b.name));
+          tr.appendChild(td(b.description ?? ''));
+          const orgName = ORGS.find(o => o.id === b.organization_id)?.name || b.organization_id;
+          tr.appendChild(td(orgName));
+          tr.appendChild(td(b.id));
+          const act = document.createElement('td');
+          const edit = btn('Edit'); const del = btn('Delete','danger');
+          act.appendChild(edit); act.appendChild(del); tr.appendChild(act);
+          edit.addEventListener('click', () => buRowEdit(tr, b));
+          del.addEventListener('click', async () => {
+            if (!confirm('Delete business unit ' + b.name + '?')) return;
+            try { await DELETE_('/business-units/' + b.id); await loadBus(); showMsg('bu-msg','Deleted business unit', true);} catch(e){ showMsg('bu-msg', String(e)); }
+          });
+          tbody.appendChild(tr);
+        }
+      }
+
+      function buRowEdit(tr, b){
+        tr.innerHTML = '';
+        const nameI = document.createElement('input'); nameI.value = b.name;
+        const descI = document.createElement('input'); descI.value = b.description ?? '';
+        let td1 = document.createElement('td'); td1.appendChild(nameI); tr.appendChild(td1);
+        let td2 = document.createElement('td'); td2.appendChild(descI); tr.appendChild(td2);
+        const orgName = ORGS.find(o => o.id === b.organization_id)?.name || b.organization_id;
+        tr.appendChild(td(orgName));
+        tr.appendChild(td(b.id));
+        const act = document.createElement('td');
+        const save = btn('Save','primary'); const cancel = btn('Cancel','ghost');
+        act.appendChild(save); act.appendChild(cancel); tr.appendChild(act);
+        save.addEventListener('click', async () => {
+          try { await PATCH('/business-units/' + b.id, { name: nameI.value.trim() || null, description: descI.value.trim() || null }); await loadBus(); showMsg('bu-msg','Saved business unit', true);} catch(e){ showMsg('bu-msg', String(e)); }
+        });
+        cancel.addEventListener('click', loadBus);
+      }
+
+      async function createBu(){
+        const org = document.getElementById('bu-org').value;
+        const name = document.getElementById('bu-name').value.trim();
+        const description = document.getElementById('bu-desc').value.trim();
+        if (!org || !name) return;
+        try { await POST('/business-units', { organization_id: org, name, description: description || undefined });
+          document.getElementById('bu-name').value=''; document.getElementById('bu-desc').value='';
+          await loadBus(); showMsg('bu-msg','Created business unit', true);
+        } catch(e){ showMsg('bu-msg', String(e)); }
+      }
+
+      function assetRowEdit(tr, a){
+        tr.innerHTML = '';
+        const nameI = document.createElement('input'); nameI.value = a.name;
+        const typeI = document.createElement('input'); typeI.value = a.asset_type;
+        const critI = document.createElement('select');
+        for (const c of ['non_critical','important','critical']){ const o=document.createElement('option'); o.textContent=c; critI.appendChild(o);} critI.value = a.criticality;
+        const impI = document.createElement('input'); impI.type='checkbox'; impI.checked = !!a.is_important;
+        const descI = document.createElement('input'); descI.value = a.description ?? '';
+        let td1 = document.createElement('td'); td1.appendChild(nameI); tr.appendChild(td1);
+        let td2 = document.createElement('td'); td2.appendChild(typeI); tr.appendChild(td2);
+        let td3 = document.createElement('td'); td3.appendChild(critI); tr.appendChild(td3);
+        let td4 = document.createElement('td'); td4.appendChild(impI); tr.appendChild(td4);
+        let td5 = document.createElement('td'); td5.appendChild(descI); tr.appendChild(td5);
+        const orgName = ORGS.find(o => o.id === a.organization_id)?.name || a.organization_id;
+        tr.appendChild(td(orgName));
+        tr.appendChild(td(a.id));
+        const act = document.createElement('td');
+        const save = btn('Save','primary'); const cancel = btn('Cancel','ghost');
+        act.appendChild(save); act.appendChild(cancel); tr.appendChild(act);
+        save.addEventListener('click', async () => {
+          try { await PATCH('/assets/' + a.id, { name: nameI.value.trim() || null, asset_type: typeI.value.trim() || null, description: descI.value.trim() || null, criticality: critI.value, is_important: impI.checked }); await loadAssets(); showMsg('asset-msg','Saved asset', true);} catch(e){ showMsg('asset-msg', String(e)); }
+        });
+        cancel.addEventListener('click', loadAssets);
+      }
+
+      async function createAsset(){
+        const org = document.getElementById('asset-org').value;
+        const name = document.getElementById('asset-name').value.trim();
+        const asset_type = document.getElementById('asset-type').value.trim();
+        const criticality = document.getElementById('asset-criticality').value;
+        const description = document.getElementById('asset-desc').value.trim();
+        const is_important = document.getElementById('asset-important').checked;
+        if (!org || !name || !asset_type) return;
+        try { await POST('/assets', { organization_id: org, name, asset_type, description: description || undefined, criticality, is_important });
+          document.getElementById('asset-name').value=''; document.getElementById('asset-type').value=''; document.getElementById('asset-desc').value=''; document.getElementById('asset-important').checked=false;
+          await loadAssets(); showMsg('asset-msg','Created asset', true);
+        } catch(e){ showMsg('asset-msg', String(e)); }
+      }
+
+      // ---------- Roles ----------
+      async function loadRoles(){
+        const list = await GET('/roles');
+        const tbody = document.getElementById('role-tbody');
+        tbody.innerHTML = '';
+        ROLES = list;
+        for (const r of list) {
+          const tr = document.createElement('tr');
+          tr.appendChild(td(r.name));
+          tr.appendChild(td(r.description ?? ''));
+          const permsTd = document.createElement('td'); permsTd.textContent = '…';
+          // load permissions per role asynchronously
+          GET('/roles/' + r.id + '/permissions').then(list => { permsTd.textContent = list.map(p=>p.name).join(', ') || ''; }).catch(_=>{ permsTd.textContent=''; });
+          tr.appendChild(permsTd);
+          tr.appendChild(td(r.id));
+          const act = document.createElement('td');
+          const edit = btn('Edit'); const del = btn('Delete','danger');
+          const addP = btn('Add Perm'); const remP = btn('Remove Perm');
+          act.appendChild(edit); act.appendChild(del); act.appendChild(addP); act.appendChild(remP); tr.appendChild(act);
+          edit.addEventListener('click', () => roleRowEdit(tr, r));
+          del.addEventListener('click', async () => {
+            if (!confirm('Delete role ' + r.name + '?')) return;
+            try { await DELETE_('/roles/' + r.id); await loadRoles(); showMsg('role-msg','Deleted role', true);} catch(e){ showMsg('role-msg', String(e)); }
+          });
+          addP.addEventListener('click', async () => {
+            try {
+              if (!PERMS.length) PERMS = await GET('/permissions');
+              const choice = prompt('Enter permission name to add (available: ' + PERMS.map(p=>p.name).join(', ') + ')');
+              if (!choice) return;
+              const perm = PERMS.find(p => p.name === choice.trim());
+              if (!perm) { alert('Permission not found'); return; }
+              await POST('/roles/' + r.id + '/permissions', { permission_id: perm.id });
+              const list = await GET('/roles/' + r.id + '/permissions'); permsTd.textContent = list.map(p=>p.name).join(', ');
+              showMsg('role-msg','Permission added', true);
+            } catch(e){ showMsg('role-msg', String(e)); }
+          });
+          remP.addEventListener('click', async () => {
+            try {
+              const list = await GET('/roles/' + r.id + '/permissions');
+              if (!list.length) { alert('No permissions to remove'); return; }
+              const choice = prompt('Enter permission name to remove (assigned: ' + list.map(p=>p.name).join(', ') + ')');
+              if (!choice) return;
+              const perm = list.find(p => p.name === choice.trim());
+              if (!perm) { alert('Permission not assigned'); return; }
+              await DELETE_('/roles/' + r.id + '/permissions/' + perm.id);
+              const list2 = await GET('/roles/' + r.id + '/permissions'); permsTd.textContent = list2.map(p=>p.name).join(', ');
+              showMsg('role-msg','Permission removed', true);
+            } catch(e){ showMsg('role-msg', String(e)); }
+          });
+          tbody.appendChild(tr);
+        }
+      }
+
+      function roleRowEdit(tr, r){
+        tr.innerHTML = '';
+        const nameI = document.createElement('input'); nameI.value = r.name;
+        const descI = document.createElement('input'); descI.value = r.description ?? '';
+        let td1 = document.createElement('td'); td1.appendChild(nameI); tr.appendChild(td1);
+        let td2 = document.createElement('td'); td2.appendChild(descI); tr.appendChild(td2);
+        tr.appendChild(td(r.id));
+        const act = document.createElement('td');
+        const save = btn('Save','primary'); const cancel = btn('Cancel','ghost');
+        act.appendChild(save); act.appendChild(cancel); tr.appendChild(act);
+        save.addEventListener('click', async () => {
+          try { await PATCH('/roles/' + r.id, { name: nameI.value.trim() || null, description: descI.value.trim() || null }); await loadRoles(); showMsg('role-msg','Saved role', true);} catch(e){ showMsg('role-msg', String(e)); }
+        });
+        cancel.addEventListener('click', loadRoles);
+      }
+
+      async function createRole(){
+        const name = document.getElementById('role-name').value.trim();
+        const description = document.getElementById('role-desc').value.trim();
+        if (!name) return;
+        try { await POST('/roles', { name, description: description || undefined });
+          document.getElementById('role-name').value=''; document.getElementById('role-desc').value='';
+          await loadRoles(); showMsg('role-msg','Created role', true);
+        } catch(e){ showMsg('role-msg', String(e)); }
+      }
+
+      // ---------- Permissions ----------
+      async function loadPermissions(){
+        const list = await GET('/permissions');
+        PERMS = list;
+        const tbody = document.getElementById('perm-tbody');
+        tbody.innerHTML = '';
+        for (const p of list) {
+          const tr = document.createElement('tr');
+          tr.appendChild(td(p.name));
+          tr.appendChild(td(p.description ?? ''));
+          tr.appendChild(td(p.id));
+          const act = document.createElement('td');
+          const edit = btn('Edit'); const del = btn('Delete','danger');
+          act.appendChild(edit); act.appendChild(del); tr.appendChild(act);
+          edit.addEventListener('click', () => permRowEdit(tr, p));
+          del.addEventListener('click', async () => {
+            if (!confirm('Delete permission ' + p.name + '?')) return;
+            try { await DELETE_('/permissions/' + p.id); await loadPermissions(); showMsg('perm-msg','Deleted permission', true);} catch(e){ showMsg('perm-msg', String(e)); }
+          });
+          tbody.appendChild(tr);
+        }
+      }
+
+      function permRowEdit(tr, p){
+        tr.innerHTML = '';
+        const nameI = document.createElement('input'); nameI.value = p.name;
+        const descI = document.createElement('input'); descI.value = p.description ?? '';
+        let td1 = document.createElement('td'); td1.appendChild(nameI); tr.appendChild(td1);
+        let td2 = document.createElement('td'); td2.appendChild(descI); tr.appendChild(td2);
+        tr.appendChild(td(p.id));
+        const act = document.createElement('td');
+        const save = btn('Save','primary'); const cancel = btn('Cancel','ghost');
+        act.appendChild(save); act.appendChild(cancel); tr.appendChild(act);
+        save.addEventListener('click', async () => {
+          try { await PATCH('/permissions/' + p.id, { name: nameI.value.trim() || null, description: descI.value.trim() || null }); await loadPermissions(); showMsg('perm-msg','Saved permission', true);} catch(e){ showMsg('perm-msg', String(e)); }
+        });
+        cancel.addEventListener('click', loadPermissions);
+      }
+
+      async function createPermission(){
+        const name = document.getElementById('perm-name').value.trim();
+        const description = document.getElementById('perm-desc').value.trim();
+        if (!name) return;
+        try { await POST('/permissions', { name, description: description || undefined });
+          document.getElementById('perm-name').value=''; document.getElementById('perm-desc').value='';
+          await loadPermissions(); showMsg('perm-msg','Created permission', true);
+        } catch(e){ showMsg('perm-msg', String(e)); }
+      }
+
+      // Wire up events
+      function setupEvents(){
+        document.getElementById('create-org').addEventListener('click', createOrg);
+        document.getElementById('create-user').addEventListener('click', createUser);
+        document.getElementById('user-filter-org').addEventListener('change', loadUsers);
+        document.getElementById('create-inc').addEventListener('click', createIncident);
+        document.getElementById('inc-filter-org').addEventListener('change', loadIncidents);
+        document.getElementById('create-tpp').addEventListener('click', createTpp);
+        document.getElementById('tpp-filter-org').addEventListener('change', loadTpps);
+        document.getElementById('create-asset').addEventListener('click', createAsset);
+        document.getElementById('asset-filter-org').addEventListener('change', loadAssets);
+        const buFilter = document.getElementById('bu-filter-org'); if (buFilter) buFilter.addEventListener('change', loadBus);
+        const buCreate = document.getElementById('create-bu'); if (buCreate) buCreate.addEventListener('click', createBu);
+        const roleCreate = document.getElementById('create-role'); if (roleCreate) roleCreate.addEventListener('click', createRole);
+        const permCreate = document.getElementById('create-perm'); if (permCreate) permCreate.addEventListener('click', createPermission);
+      }
+
+      async function init(){
+        setupTabs();
+        setupEvents();
+        try {
+          await loadOrgs();
+          // Load permissions first so they are available for role/user assignment prompts
+          await loadPermissions();
+          await Promise.all([loadUsers(), loadIncidents(), loadTpps(), loadAssets(), loadBus(), loadRoles()]);
+          showMsg('global-msg','', true);
+        } catch(e){
+          showMsg('global-msg', 'API error: ' + String(e));
+        }
+      }
+
+      window.addEventListener('DOMContentLoaded', init);
+    </script>
+  </body>
+  </html>
