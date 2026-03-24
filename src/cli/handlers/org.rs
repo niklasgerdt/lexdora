@@ -69,3 +69,28 @@ pub async fn org_handlers(pool: &PgPool, cmd: OrgCmd) -> Result<()> {
     }
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::db::db_pool;
+
+    async fn setup_pool() -> PgPool {
+        let db_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+        db_pool(&db_url).await.expect("Failed to create pool")
+    }
+
+    #[tokio::test]
+    async fn test_org_handlers() {
+        let pool = setup_pool().await;
+        let name = format!("CLI Org {}", Uuid::new_v4());
+        
+        // Test Create
+        let cmd = OrgCmd::Create { name: name.clone(), legal_entity_id: None };
+        org_handlers(&pool, cmd).await.unwrap();
+
+        // Test List
+        let cmd = OrgCmd::List;
+        org_handlers(&pool, cmd).await.unwrap();
+    }
+}

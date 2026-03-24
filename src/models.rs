@@ -297,6 +297,15 @@ mod tests {
     }
 
     #[test]
+    fn test_user_update_req_deser() {
+        let json = r#"{"email": "new@example.com", "is_active": false}"#;
+        let req: UserUpdateReq = serde_json::from_str(json).unwrap();
+        assert_eq!(req.email, Some("new@example.com".to_string()));
+        assert_eq!(req.full_name, None);
+        assert_eq!(req.is_active, Some(false));
+    }
+
+    #[test]
     fn test_user_create_req_deser() {
         let org_id = Uuid::new_v4();
         let json = format!(r#"{{"organization_id": "{}", "email": "test@example.com", "full_name": "Test User"}}"#, org_id);
@@ -307,15 +316,21 @@ mod tests {
     }
 
     #[test]
-    fn test_incident_create_req_deser() {
-        let org_id = Uuid::new_v4();
-        let json = format!(r#"{{"organization_id": "{}", "title": "Outage", "type_": "Network", "severity": "High", "detected_at": "2024-03-24T12:00:00Z"}}"#, org_id);
-        let req: IncidentCreateReq = serde_json::from_str(&json).unwrap();
-        assert_eq!(req.organization_id, org_id);
-        assert_eq!(req.title, "Outage");
-        assert_eq!(req.type_, "Network");
-        assert_eq!(req.severity, "High");
-        assert_eq!(req.detected_at, "2024-03-24T12:00:00Z");
+    fn test_incident_update_req_deser() {
+        let json = r#"{"title": "Updated Outage", "is_major": true}"#;
+        let req: IncidentUpdateReq = serde_json::from_str(json).unwrap();
+        assert_eq!(req.title, Some("Updated Outage".to_string()));
+        assert_eq!(req.is_major, Some(true));
+        assert_eq!(req.severity, None);
+    }
+
+    #[test]
+    fn test_tpp_update_req_deser() {
+        let json = r#"{"name": "New Cloud Provider", "is_important": false}"#;
+        let req: TppUpdateReq = serde_json::from_str(json).unwrap();
+        assert_eq!(req.name, Some("New Cloud Provider".to_string()));
+        assert_eq!(req.is_important, Some(false));
+        assert_eq!(req.country, None);
     }
 
     #[test]

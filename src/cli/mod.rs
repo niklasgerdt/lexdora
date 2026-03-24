@@ -107,4 +107,31 @@ mod tests {
             _ => panic!("Expected Commands::Serve"),
         }
     }
+
+    #[test]
+    fn test_cli_parse_user_create() {
+        let org_id = Uuid::new_v4();
+        let org_id_str = org_id.to_string();
+        let args = vec![
+            "dora-cli",
+            "user",
+            "create",
+            &org_id_str,
+            "alice@example.com",
+            "--full-name",
+            "Alice Smith",
+        ];
+        let cli = Cli::try_parse_from(args).unwrap();
+        match cli.command {
+            Commands::User { cmd } => match cmd {
+                UserCmd::Create { organization_id, email, full_name } => {
+                    assert_eq!(organization_id, org_id);
+                    assert_eq!(email, "alice@example.com");
+                    assert_eq!(full_name, Some("Alice Smith".to_string()));
+                }
+                _ => panic!("Expected UserCmd::Create"),
+            },
+            _ => panic!("Expected Commands::User"),
+        }
+    }
 }
