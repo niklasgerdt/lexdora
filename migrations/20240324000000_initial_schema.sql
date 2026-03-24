@@ -521,7 +521,7 @@ CREATE TABLE IF NOT EXISTS third_party_providers (
     organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     name            TEXT NOT NULL,
     country         TEXT,
-    criticality     criticality_level NOT NULL DEFAULT 'non_critical',
+    criticality     asset_criticality NOT NULL DEFAULT 'non_critical',
     is_important    BOOLEAN NOT NULL DEFAULT false, -- supports important function
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -578,7 +578,7 @@ CREATE TABLE IF NOT EXISTS subcontractors (
     third_party_id   UUID NOT NULL REFERENCES third_party_providers(id) ON DELETE CASCADE,
     name             TEXT NOT NULL,
     country          TEXT,
-    criticality      criticality_level NOT NULL DEFAULT 'non_critical'
+    criticality      asset_criticality NOT NULL DEFAULT 'non_critical'
 );
 
 CREATE TABLE IF NOT EXISTS concentration_risk (
