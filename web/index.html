@@ -555,10 +555,14 @@
           <h2>Create Role</h2>
           <div class="row">
             <div class="col-6">
+              <label>Organization</label>
+              <select id="role-org"></select>
+            </div>
+            <div class="col-6">
               <label>Name</label>
               <input id="role-name" placeholder="Incident Manager" />
             </div>
-            <div class="col-6">
+            <div class="col-12">
               <label>Description (optional)</label>
               <input id="role-desc" placeholder="What this role does" />
             </div>
@@ -667,7 +671,7 @@
       }
 
       function renderOrgOptions(){
-        const selects = ['user-org','user-filter-org','inc-org','inc-filter-org','tpp-org','tpp-filter-org','asset-org','asset-filter-org','bu-org','bu-filter-org'];
+        const selects = ['user-org','user-filter-org','inc-org','inc-filter-org','tpp-org','tpp-filter-org','asset-org','asset-filter-org','bu-org','bu-filter-org','role-org'];
         for (const id of selects) {
           const sel = document.getElementById(id);
           if (!sel) continue;
@@ -1153,10 +1157,11 @@
       }
 
       async function createRole(){
+        const org = document.getElementById('role-org').value;
         const name = document.getElementById('role-name').value.trim();
         const description = document.getElementById('role-desc').value.trim();
-        if (!name) return;
-        try { await POST('/roles', { name, description: description || undefined });
+        if (!org || !name) return;
+        try { await POST('/roles', { organization_id: org, name, description: description || undefined });
           document.getElementById('role-name').value=''; document.getElementById('role-desc').value='';
           await loadRoles(); showMsg('role-msg','Created role', true);
         } catch(e){ showMsg('role-msg', String(e)); }

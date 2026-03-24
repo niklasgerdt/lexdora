@@ -151,6 +151,70 @@ async fn test_org_crud() {
         .unwrap();
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
 }
+#[tokio::test]
+async fn test_role_creation() {
+    let pool = get_test_pool().await;
+    let app = build_router(pool);
+    // 1. Create Org first
+    let org_name = format!("Role Test Org {}", Uuid::new_v4());
+    let create_org_req = json!({
+        "name": org_name,
+    });
+    let response = app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/orgs")
+                .header("Content-Type", "application/json")
+                .body(Body::from(serde_json::to_vec(&create_org_req).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+    let res_data: Value = serde_json::from_slice(&body).unwrap();
+    let org_id = res_data["id"].as_str().unwrap();
+    // 2. Create Role (The part that supposedly fails with 422)
+    let role_name = format!("Role {}", Uuid::new_v4());
+    let create_role_req = json!({
+        "organization_id": org_id,
+        "name": role_name,
+        "description": "Full access"
+    });
+    let response = app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/roles")
+                .header("Content-Type", "application/json")
+                .body(Body::from(serde_json::to_vec(&create_role_req).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    // If it's 422, this assertion will fail
+    assert_eq!(response.status(), StatusCode::CREATED, "Role creation failed with status: {}", response.status());
+
+    // 3. Attempt to create Role WITHOUT organization_id (Reproduction of the 422 error)
+    let bad_role_req = json!({
+        "name": "Bad Role"
+    });
+
+    let response = app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/roles")
+                .header("Content-Type", "application/json")
+                .body(Body::from(serde_json::to_vec(&bad_role_req).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY, "Expected 422 for missing organization_id, got: {}", response.status());
+}
 
 #[tokio::test]
 async fn test_user_crud() {
