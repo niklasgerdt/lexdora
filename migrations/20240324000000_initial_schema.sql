@@ -71,8 +71,8 @@ DO $$ BEGIN
 END $$;
 
 DO $$ BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'criticality_level') THEN
-        CREATE TYPE criticality_level AS ENUM ('non_critical', 'important', 'critical');
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'asset_criticality') THEN
+        CREATE TYPE asset_criticality AS ENUM ('non_critical', 'important', 'critical');
     END IF;
 END $$;
 
@@ -169,9 +169,9 @@ CREATE TABLE IF NOT EXISTS ict_assets (
     organization_id  UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     name             TEXT NOT NULL,
     asset_type       TEXT NOT NULL, -- server, app, db, network_device, cloud_service
-    owner_user_id    UUID REFERENCES users(id) ON DELETE SET NULL,
+    owner_id    UUID REFERENCES users(id) ON DELETE SET NULL,
     business_unit_id UUID REFERENCES business_units(id) ON DELETE SET NULL,
-    criticality      criticality_level NOT NULL DEFAULT 'non_critical',
+    criticality      asset_criticality NOT NULL DEFAULT 'non_critical',
     is_important     BOOLEAN NOT NULL DEFAULT false, -- DORA: important function support
     description      TEXT,
     created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -185,9 +185,9 @@ CREATE TABLE IF NOT EXISTS data_assets (
     name             TEXT NOT NULL,
     data_category    TEXT NOT NULL, -- PII, payment, log, secret, etc.
     classification   TEXT NOT NULL, -- public, internal, confidential, secret
-    owner_user_id    UUID REFERENCES users(id) ON DELETE SET NULL,
+    owner_id    UUID REFERENCES users(id) ON DELETE SET NULL,
     business_unit_id UUID REFERENCES business_units(id) ON DELETE SET NULL,
-    criticality      criticality_level NOT NULL DEFAULT 'non_critical',
+    criticality      asset_criticality NOT NULL DEFAULT 'non_critical',
     created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
     UNIQUE (organization_id, name)
@@ -199,7 +199,7 @@ CREATE TABLE IF NOT EXISTS services (
     name             TEXT NOT NULL,
     description      TEXT,
     is_important     BOOLEAN NOT NULL DEFAULT false, -- Important/critical functions
-    owner_user_id    UUID REFERENCES users(id) ON DELETE SET NULL,
+    owner_id    UUID REFERENCES users(id) ON DELETE SET NULL,
     business_unit_id UUID REFERENCES business_units(id) ON DELETE SET NULL,
     created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -250,7 +250,7 @@ CREATE TABLE IF NOT EXISTS risk_register (
     residual_impact  severity_level,
     residual_likelihood likelihood_level,
     status           status_type NOT NULL DEFAULT 'draft',
-    owner_user_id    UUID REFERENCES users(id) ON DELETE SET NULL,
+    owner_id    UUID REFERENCES users(id) ON DELETE SET NULL,
     created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at       TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -299,7 +299,7 @@ CREATE TABLE IF NOT EXISTS risk_treatments (
     plan         TEXT,
     due_date     DATE,
     status       status_type NOT NULL DEFAULT 'planned',
-    owner_user_id UUID REFERENCES users(id) ON DELETE SET NULL
+    owner_id UUID REFERENCES users(id) ON DELETE SET NULL
 );
 
 CREATE TABLE IF NOT EXISTS risk_exceptions (
@@ -361,7 +361,7 @@ CREATE TABLE IF NOT EXISTS corrective_actions (
     id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     incident_id   UUID NOT NULL REFERENCES incidents(id) ON DELETE CASCADE,
     action        TEXT NOT NULL,
-    owner_user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    owner_id UUID REFERENCES users(id) ON DELETE SET NULL,
     due_date      DATE,
     status        status_type NOT NULL DEFAULT 'planned',
     completed_at  TIMESTAMPTZ
@@ -447,7 +447,7 @@ CREATE TABLE IF NOT EXISTS remediation_tasks (
     id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     finding_id    UUID REFERENCES findings(id) ON DELETE CASCADE,
     title         TEXT NOT NULL,
-    owner_user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    owner_id UUID REFERENCES users(id) ON DELETE SET NULL,
     due_date      DATE,
     status        status_type NOT NULL DEFAULT 'planned',
     completed_at  TIMESTAMPTZ

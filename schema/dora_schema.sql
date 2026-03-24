@@ -71,8 +71,8 @@ DO $$ BEGIN
 END $$;
 
 DO $$ BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'criticality_level') THEN
-        CREATE TYPE criticality_level AS ENUM ('non_critical', 'important', 'critical');
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'asset_criticality') THEN
+        CREATE TYPE asset_criticality AS ENUM ('non_critical', 'important', 'critical');
     END IF;
 END $$;
 
@@ -99,20 +99,27 @@ CREATE TABLE IF NOT EXISTS business_units (
 );
 
 CREATE TABLE IF NOT EXISTS roles (
-    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name        TEXT NOT NULL UNIQUE,
-    description TEXT
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    name            TEXT NOT NULL,
+    description     TEXT,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE (organization_id, name)
 );
 
 CREATE TABLE IF NOT EXISTS permissions (
     id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name        TEXT NOT NULL UNIQUE,
-    description TEXT
+    description TEXT,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE TABLE IF NOT EXISTS role_permissions (
     role_id       UUID NOT NULL REFERENCES roles(id) ON DELETE CASCADE,
     permission_id UUID NOT NULL REFERENCES permissions(id) ON DELETE CASCADE,
+    assigned_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
     PRIMARY KEY (role_id, permission_id)
 );
 
@@ -127,15 +134,18 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 CREATE TABLE IF NOT EXISTS user_roles (
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    role_id UUID NOT NULL REFERENCES roles(id) ON DELETE CASCADE,
+    user_id     UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    role_id     UUID NOT NULL REFERENCES roles(id) ON DELETE CASCADE,
+    assigned_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     PRIMARY KEY (user_id, role_id)
 );
 
 CREATE TABLE IF NOT EXISTS regulators (
-    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name        TEXT NOT NULL UNIQUE,
-    jurisdiction TEXT NOT NULL
+    id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name         TEXT NOT NULL UNIQUE,
+    jurisdiction TEXT NOT NULL,
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at   TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE TABLE IF NOT EXISTS regulatory_obligations (
@@ -145,6 +155,8 @@ CREATE TABLE IF NOT EXISTS regulatory_obligations (
     description     TEXT,
     regulator_id    UUID REFERENCES regulators(id) ON DELETE SET NULL,
     effective_date  DATE,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
     UNIQUE (code)
 );
 
@@ -157,9 +169,9 @@ CREATE TABLE IF NOT EXISTS ict_assets (
     organization_id  UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     name             TEXT NOT NULL,
     asset_type       TEXT NOT NULL, -- server, app, db, network_device, cloud_service
-    owner_user_id    UUID REFERENCES users(id) ON DELETE SET NULL,
+    owner_id    UUID REFERENCES users(id) ON DELETE SET NULL,
     business_unit_id UUID REFERENCES business_units(id) ON DELETE SET NULL,
-    criticality      criticality_level NOT NULL DEFAULT 'non_critical',
+    criticality      asset_criticality NOT NULL DEFAULT 'non_critical',
     is_important     BOOLEAN NOT NULL DEFAULT false, -- DORA: important function support
     description      TEXT,
     created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -173,9 +185,9 @@ CREATE TABLE IF NOT EXISTS data_assets (
     name             TEXT NOT NULL,
     data_category    TEXT NOT NULL, -- PII, payment, log, secret, etc.
     classification   TEXT NOT NULL, -- public, internal, confidential, secret
-    owner_user_id    UUID REFERENCES users(id) ON DELETE SET NULL,
+    owner_id    UUID REFERENCES users(id) ON DELETE SET NULL,
     business_unit_id UUID REFERENCES business_units(id) ON DELETE SET NULL,
-    criticality      criticality_level NOT NULL DEFAULT 'non_critical',
+    criticality      asset_criticality NOT NULL DEFAULT 'non_critical',
     created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
     UNIQUE (organization_id, name)
@@ -187,7 +199,7 @@ CREATE TABLE IF NOT EXISTS services (
     name             TEXT NOT NULL,
     description      TEXT,
     is_important     BOOLEAN NOT NULL DEFAULT false, -- Important/critical functions
-    owner_user_id    UUID REFERENCES users(id) ON DELETE SET NULL,
+    owner_id    UUID REFERENCES users(id) ON DELETE SET NULL,
     business_unit_id UUID REFERENCES business_units(id) ON DELETE SET NULL,
     created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -223,7 +235,9 @@ CREATE TABLE IF NOT EXISTS control_library (
     title         TEXT NOT NULL,
     description   TEXT,
     control_type  control_type NOT NULL,
-    source        TEXT -- policy/standard mapping
+    source        TEXT, -- policy/standard mapping
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE TABLE IF NOT EXISTS risk_register (
@@ -236,7 +250,7 @@ CREATE TABLE IF NOT EXISTS risk_register (
     residual_impact  severity_level,
     residual_likelihood likelihood_level,
     status           status_type NOT NULL DEFAULT 'draft',
-    owner_user_id    UUID REFERENCES users(id) ON DELETE SET NULL,
+    owner_id    UUID REFERENCES users(id) ON DELETE SET NULL,
     created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at       TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -285,7 +299,7 @@ CREATE TABLE IF NOT EXISTS risk_treatments (
     plan         TEXT,
     due_date     DATE,
     status       status_type NOT NULL DEFAULT 'planned',
-    owner_user_id UUID REFERENCES users(id) ON DELETE SET NULL
+    owner_id UUID REFERENCES users(id) ON DELETE SET NULL
 );
 
 CREATE TABLE IF NOT EXISTS risk_exceptions (
@@ -347,7 +361,7 @@ CREATE TABLE IF NOT EXISTS corrective_actions (
     id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     incident_id   UUID NOT NULL REFERENCES incidents(id) ON DELETE CASCADE,
     action        TEXT NOT NULL,
-    owner_user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    owner_id UUID REFERENCES users(id) ON DELETE SET NULL,
     due_date      DATE,
     status        status_type NOT NULL DEFAULT 'planned',
     completed_at  TIMESTAMPTZ
@@ -433,7 +447,7 @@ CREATE TABLE IF NOT EXISTS remediation_tasks (
     id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     finding_id    UUID REFERENCES findings(id) ON DELETE CASCADE,
     title         TEXT NOT NULL,
-    owner_user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    owner_id UUID REFERENCES users(id) ON DELETE SET NULL,
     due_date      DATE,
     status        status_type NOT NULL DEFAULT 'planned',
     completed_at  TIMESTAMPTZ
@@ -502,26 +516,28 @@ CREATE TABLE IF NOT EXISTS lessons_learned (
 -- Section 7: Third‑Party Risk Management (TPRM)
 -- =============================
 
-CREATE TABLE IF NOT EXISTS third_parties (
+CREATE TABLE IF NOT EXISTS third_party_providers (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     name            TEXT NOT NULL,
     country         TEXT,
     criticality     criticality_level NOT NULL DEFAULT 'non_critical',
     is_important    BOOLEAN NOT NULL DEFAULT false, -- supports important function
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
     UNIQUE (organization_id, name)
 );
 
 CREATE TABLE IF NOT EXISTS tpp_services (
     id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    third_party_id UUID NOT NULL REFERENCES third_parties(id) ON DELETE CASCADE,
+    third_party_id UUID NOT NULL REFERENCES third_party_providers(id) ON DELETE CASCADE,
     name           TEXT NOT NULL,
     description    TEXT
 );
 
 CREATE TABLE IF NOT EXISTS tpp_contracts (
     id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    third_party_id UUID NOT NULL REFERENCES third_parties(id) ON DELETE CASCADE,
+    third_party_id UUID NOT NULL REFERENCES third_party_providers(id) ON DELETE CASCADE,
     service_id     UUID REFERENCES tpp_services(id) ON DELETE SET NULL,
     start_date     DATE NOT NULL,
     end_date       DATE,
@@ -531,7 +547,7 @@ CREATE TABLE IF NOT EXISTS tpp_contracts (
 
 CREATE TABLE IF NOT EXISTS tpp_risks (
     id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    third_party_id UUID NOT NULL REFERENCES third_parties(id) ON DELETE CASCADE,
+    third_party_id UUID NOT NULL REFERENCES third_party_providers(id) ON DELETE CASCADE,
     title          TEXT NOT NULL,
     description    TEXT,
     impact         severity_level NOT NULL,
@@ -541,7 +557,7 @@ CREATE TABLE IF NOT EXISTS tpp_risks (
 
 CREATE TABLE IF NOT EXISTS tpp_assessments (
     id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    third_party_id UUID NOT NULL REFERENCES third_parties(id) ON DELETE CASCADE,
+    third_party_id UUID NOT NULL REFERENCES third_party_providers(id) ON DELETE CASCADE,
     assessment_date DATE NOT NULL,
     assessed_by    UUID REFERENCES users(id) ON DELETE SET NULL,
     methodology    TEXT,
@@ -550,7 +566,7 @@ CREATE TABLE IF NOT EXISTS tpp_assessments (
 
 CREATE TABLE IF NOT EXISTS tpp_incidents (
     id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    third_party_id UUID NOT NULL REFERENCES third_parties(id) ON DELETE CASCADE,
+    third_party_id UUID NOT NULL REFERENCES third_party_providers(id) ON DELETE CASCADE,
     incident_id    UUID REFERENCES incidents(id) ON DELETE SET NULL,
     description    TEXT,
     severity       incident_severity NOT NULL,
@@ -559,7 +575,7 @@ CREATE TABLE IF NOT EXISTS tpp_incidents (
 
 CREATE TABLE IF NOT EXISTS subcontractors (
     id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    third_party_id   UUID NOT NULL REFERENCES third_parties(id) ON DELETE CASCADE,
+    third_party_id   UUID NOT NULL REFERENCES third_party_providers(id) ON DELETE CASCADE,
     name             TEXT NOT NULL,
     country          TEXT,
     criticality      criticality_level NOT NULL DEFAULT 'non_critical'
