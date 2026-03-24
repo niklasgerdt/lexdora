@@ -236,7 +236,7 @@ pub struct AssetCreateReq {
     pub name: String,
     #[serde(default)]
     pub description: Option<String>,
-    #[serde(default, value_name = "asset_criticality")]
+    #[serde(default)]
     pub criticality: Option<String>,
     #[serde(default)]
     pub owner_id: Option<Uuid>,
