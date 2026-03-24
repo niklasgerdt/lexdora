@@ -451,9 +451,10 @@ CREATE TABLE IF NOT EXISTS bcp_plans (
     approved_by     UUID REFERENCES users(id) ON DELETE SET NULL,
     approved_at     TIMESTAMPTZ,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
-    updated_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
-    UNIQUE (organization_id, name, COALESCE(version, ''))
+    updated_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_bcp_plans_unique ON bcp_plans (organization_id, name, COALESCE(version, ''));
 
 CREATE TABLE IF NOT EXISTS dr_plans (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -463,9 +464,10 @@ CREATE TABLE IF NOT EXISTS dr_plans (
     rto_minutes     INTEGER,
     rpo_minutes     INTEGER,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
-    updated_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
-    UNIQUE (organization_id, name, COALESCE(version, ''))
+    updated_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_dr_plans_unique ON dr_plans (organization_id, name, COALESCE(version, ''));
 
 CREATE TABLE IF NOT EXISTS resilience_tests (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -623,25 +625,28 @@ CREATE TABLE IF NOT EXISTS policies (
     name            TEXT NOT NULL,
     version         TEXT,
     approved_by     UUID REFERENCES users(id) ON DELETE SET NULL,
-    approved_at     TIMESTAMPTZ,
-    UNIQUE (organization_id, name, COALESCE(version, ''))
+    approved_at     TIMESTAMPTZ
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_policies_unique ON policies (organization_id, name, COALESCE(version, ''));
 
 CREATE TABLE IF NOT EXISTS standards (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     name            TEXT NOT NULL,
-    version         TEXT,
-    UNIQUE (organization_id, name, COALESCE(version, ''))
+    version         TEXT
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_standards_unique ON standards (organization_id, name, COALESCE(version, ''));
 
 CREATE TABLE IF NOT EXISTS procedures (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     name            TEXT NOT NULL,
-    version         TEXT,
-    UNIQUE (organization_id, name, COALESCE(version, ''))
+    version         TEXT
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_procedures_unique ON procedures (organization_id, name, COALESCE(version, ''));
 
 CREATE TABLE IF NOT EXISTS trainings (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
