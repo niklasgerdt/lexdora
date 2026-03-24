@@ -33,3 +33,24 @@ pub fn handle_db_error(err: sqlx::Error) -> axum::response::Response {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axum::response::IntoResponse;
+    use sqlx::Error;
+
+    #[tokio::test]
+    async fn test_handle_db_error_not_found() {
+        let err = Error::RowNotFound;
+        let res = handle_db_error(err);
+        assert_eq!(res.status(), StatusCode::NOT_FOUND);
+    }
+
+    #[tokio::test]
+    async fn test_handle_db_error_internal() {
+        let err = Error::WorkerCrashed;
+        let res = handle_db_error(err);
+        assert_eq!(res.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    }
+}

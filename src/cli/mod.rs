@@ -74,3 +74,37 @@ pub enum TppCmd {
     Update { id: Uuid, #[arg(long)] name: Option<String>, #[arg(long)] country: Option<String>, #[arg(long)] criticality: Option<String>, #[arg(long)] is_important: Option<bool> },
     Delete { id: Uuid },
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use clap::Parser;
+
+    #[test]
+    fn test_cli_parse_org_create() {
+        let args = vec!["dora-cli", "org", "create", "ACME", "--legal-entity-id", "123"];
+        let cli = Cli::try_parse_from(args).unwrap();
+        match cli.command {
+            Commands::Org { cmd } => match cmd {
+                OrgCmd::Create { name, legal_entity_id } => {
+                    assert_eq!(name, "ACME");
+                    assert_eq!(legal_entity_id, Some("123".to_string()));
+                }
+                _ => panic!("Expected OrgCmd::Create"),
+            },
+            _ => panic!("Expected Commands::Org"),
+        }
+    }
+
+    #[test]
+    fn test_cli_parse_serve() {
+        let args = vec!["dora-cli", "serve", "--bind", "127.0.0.1:8080"];
+        let cli = Cli::try_parse_from(args).unwrap();
+        match cli.command {
+            Commands::Serve { bind } => {
+                assert_eq!(bind, Some("127.0.0.1:8080".to_string()));
+            }
+            _ => panic!("Expected Commands::Serve"),
+        }
+    }
+}
