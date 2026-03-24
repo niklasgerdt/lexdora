@@ -18,9 +18,6 @@ COPY web ./web
 COPY schema ./schema
 COPY migrations ./migrations
 
-# Install rustowl CLI (so it's available in the runtime PATH)
-RUN cargo install rustowl
-
 RUN cargo build --release
 
 # ---- Runtime stage ----
@@ -37,8 +34,6 @@ RUN apt-get update \
 # Copy binary and static web assets
 COPY --from=builder /app/target/release/DORAEU /app/DORAEU
 COPY --from=builder /app/web /app/web
-# Provide rustowl in PATH inside the runtime image
-COPY --from=builder /usr/local/cargo/bin/rustowl /usr/local/bin/rustowl
 
 EXPOSE 8080
 
