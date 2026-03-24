@@ -7,5 +7,12 @@ pub async fn db_pool(url: &str) -> Result<PgPool> {
         .connect(url)
         .await
         .with_context(|| "Failed to connect to DATABASE_URL")?;
+
+    // Run migrations
+    sqlx::migrate!("./migrations")
+        .run(&pool)
+        .await
+        .with_context(|| "Failed to run migrations")?;
+
     Ok(pool)
 }

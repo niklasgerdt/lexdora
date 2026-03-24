@@ -16,6 +16,7 @@ COPY Cargo.toml ./
 COPY src ./src
 COPY web ./web
 COPY schema ./schema
+COPY migrations ./migrations
 
 # Install rustowl CLI (so it's available in the runtime PATH)
 RUN cargo install rustowl
